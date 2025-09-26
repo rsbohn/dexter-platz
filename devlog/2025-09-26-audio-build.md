@@ -14,6 +14,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Raised the center cube so it floats 10 voxels above the sampled terrain height.
 - Generated a Perlin-based ground texture and applied it via a shared material.
 - Added dirt and stone texture variants and pick chunk materials based on sampled elevation.
+- Reworked the fly camera: A/D now yaw, W/S moves relative to facing, rig now has a visible mesh child plus the camera.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
 

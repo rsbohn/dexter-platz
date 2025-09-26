@@ -22,7 +22,8 @@ The default build targets X11 and will fall back to XWayland when run in a Wayla
 ## Controls
 
 - `Backspace`: quit
-- `W`/`A`/`S`/`D`: move ground-plane directions
+- `A`/`D`: rotate left/right
+- `W`/`S`: move forward/back based on facing
 - `Z`: move down
 - `X`: move up
 

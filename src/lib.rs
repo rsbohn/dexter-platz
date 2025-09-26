@@ -63,13 +63,35 @@ fn setup(
         (WORLD_DIM * CHUNK_SIZE as u32) as f32,
     );
     let center = world_size / 2.0;
-    commands
-        .spawn(Camera3dBundle {
-            transform: Transform::from_translation(center + Vec3::new(80.0, 120.0, 160.0))
-                .looking_at(center, Vec3::Y),
+    let camera_mesh = meshes.add(Mesh::from(Cuboid::new(1.0, 0.6, 1.6)));
+    let camera_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.95, 0.8, 0.3),
+        emissive: Color::srgb(0.05, 0.03, 0.01).into(),
+        perceptual_roughness: 0.2,
+        reflectance: 0.08,
+        ..default()
+    });
+    let camera_start = center + Vec3::new(80.0, 120.0, 160.0);
+    let mut camera_rig = commands.spawn((
+        SpatialBundle {
+            transform: Transform::from_translation(camera_start).looking_at(center, Vec3::Y),
             ..default()
-        })
-        .insert(FlyCamera);
+        },
+        FlyCamera,
+    ));
+    camera_rig.with_children(|parent| {
+        parent.spawn(PbrBundle {
+            mesh: camera_mesh.clone(),
+            material: camera_material.clone(),
+            transform: Transform::from_translation(Vec3::new(0.0, -0.4, 0.0))
+                .with_scale(Vec3::new(0.8, 0.6, 0.8)),
+            ..default()
+        });
+        parent.spawn(Camera3dBundle {
+            transform: Transform::from_translation(Vec3::new(0.0, 0.4, 0.0)),
+            ..default()
+        });
+    });
 
     let ground_texture = asset_server.load("textures/ground.png");
     let dirt_texture = asset_server.load("textures/dirt.png");
@@ -198,33 +220,46 @@ fn camera_controls(
         exit.send(AppExit::Success);
     }
 
-    let mut direction = Vec3::ZERO;
-    if keys.pressed(KeyCode::KeyW) {
-        direction.z -= 1.0;
-    }
-    if keys.pressed(KeyCode::KeyS) {
-        direction.z += 1.0;
-    }
+    let mut transform = match query.get_single_mut() {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+
+    let delta = time.delta_seconds();
+    let rotation_speed = std::f32::consts::PI; // half turn per second
+    let mut yaw_input: f32 = 0.0;
     if keys.pressed(KeyCode::KeyA) {
-        direction.x -= 1.0;
+        yaw_input += 1.0;
     }
     if keys.pressed(KeyCode::KeyD) {
-        direction.x += 1.0;
+        yaw_input -= 1.0;
+    }
+    if yaw_input.abs() > f32::EPSILON {
+        transform.rotate_y(yaw_input * rotation_speed * delta);
+    }
+
+    let mut movement = Vec3::ZERO;
+    let mut forward = transform.forward().as_vec3();
+    forward.y = 0.0;
+    if forward.length_squared() > f32::EPSILON {
+        forward = forward.normalize();
+    }
+    if keys.pressed(KeyCode::KeyW) {
+        movement += forward;
+    }
+    if keys.pressed(KeyCode::KeyS) {
+        movement -= forward;
     }
     if keys.pressed(KeyCode::KeyX) {
-        direction.y += 1.0;
+        movement.y += 1.0;
     }
     if keys.pressed(KeyCode::KeyZ) {
-        direction.y -= 1.0;
+        movement.y -= 1.0;
     }
 
-    if direction == Vec3::ZERO {
-        return;
-    }
-
-    let delta = direction.normalize() * 50.0 * time.delta_seconds();
-    if let Ok(mut transform) = query.get_single_mut() {
-        transform.translation += delta;
+    if movement != Vec3::ZERO {
+        let speed = 50.0;
+        transform.translation += movement.normalize() * speed * delta;
     }
 }
 
