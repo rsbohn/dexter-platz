@@ -114,7 +114,8 @@ fn setup(
         base_color: Color::srgb(0.95, 0.95, 0.95),
         ..default()
     });
-    let cube_translation = Vec3::new(center.x - 0.5, 0.5, center.z - 0.5);
+    let ground_height = height_at(center.x, center.z);
+    let cube_translation = Vec3::new(center.x - 0.5, ground_height + 10.5, center.z - 0.5);
     commands.spawn(PbrBundle {
         mesh: cube_mesh,
         material: cube_material,
