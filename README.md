@@ -1,4 +1,4 @@
-# platz
+# dexter-platz
 
 A minimal Bevy voxel mini-game scaffold.
 
@@ -38,7 +38,7 @@ cargo build --release
 ```
 
 ## Next steps
-- Decide if this should be a binary, a library, or a workspace.
-- Add dependencies in `Cargo.toml`.
-- Add CI (fmt, clippy, tests) if needed.
-- Choose a license.
+- Add driving controls (steering, braking) and physics for the ground vehicle.
+- Populate the world with interactable props to showcase multiple cameras.
+- Split rendering and gameplay into modules if this grows beyond a single binary.
+- Wire up CI (fmt, clippy, tests) to keep the project healthy.
