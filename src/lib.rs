@@ -13,6 +13,14 @@ use crate::world::{Chunk, CHUNK_SIZE};
 
 const WORLD_DIM: u32 = 9; // 9x9x9 chunks
 
+fn height_at(world_x: f32, world_z: f32) -> f32 {
+    let coarse = (world_x * 0.05).sin() + (world_z * 0.05).cos();
+    let medium = ((world_x + world_z) * 0.02).sin();
+    let detail = (world_x * 0.14).cos() * (world_z * 0.14).sin();
+    let height = coarse * 4.5 + medium * 7.5 + detail * 2.0 + 14.0;
+    height.max(0.0)
+}
+
 #[derive(Component)]
 struct FlyCamera;
 
@@ -67,7 +75,7 @@ fn setup(
         for cy in 0..WORLD_DIM {
             for cx in 0..WORLD_DIM {
                 let mut chunk = Chunk::new();
-                generate_chunk_ground(cx, cy, cz, &mut chunk);
+                populate_chunk_heightfield(cx, cy, cz, &mut chunk);
 
                 let smesh = mesh_chunk(&chunk);
                 if smesh.indices.is_empty() {
@@ -115,14 +123,24 @@ fn setup(
     });
 }
 
-fn generate_chunk_ground(_cx: u32, cy: u32, _cz: u32, chunk: &mut Chunk) {
-    // Place ground only on the world layer where global Y == 0
-    if cy != 0 {
-        return;
-    }
-    for z in 0..CHUNK_SIZE as u32 {
-        for x in 0..CHUNK_SIZE as u32 {
-            chunk.set(x, 0, z, Voxel(1));
+fn populate_chunk_heightfield(cx: u32, cy: u32, cz: u32, chunk: &mut Chunk) {
+    let chunk_size = CHUNK_SIZE as u32;
+    let world_y_base = (cy * chunk_size) as i32;
+    let max_world_height = (WORLD_DIM * chunk_size - 1) as i32;
+
+    for z in 0..chunk_size {
+        let world_z = (cz * chunk_size + z) as f32;
+        for x in 0..chunk_size {
+            let world_x = (cx * chunk_size + x) as f32;
+            let target_height = height_at(world_x, world_z).floor() as i32;
+            let clamped_height = target_height.clamp(0, max_world_height);
+
+            for y in 0..chunk_size {
+                let world_y = world_y_base + y as i32;
+                if world_y <= clamped_height {
+                    chunk.set(x, y, z, Voxel(1));
+                }
+            }
         }
     }
 }

@@ -10,7 +10,7 @@ Ensure Rust and Cargo are installed, then:
 cargo run
 ```
 This launches a Bevy window rendering a 9×9×9 chunk world
-with a simple ground layer and basic lighting.
+with a simple heightfield terrain, a center marker cube, and basic animated lighting.
 
 Wayland sessions can opt into the native backend (requires system Wayland development packages and matching runtime libraries) with:
 

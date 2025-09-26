@@ -10,6 +10,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Animated the directional light to drift between blue, white, and red and documented the behavior.
 - Spawned a white cube at the world's center to serve as a visual reference point.
 - Enabled Bevy's `tonemapping_luts` feature so TonyMcMapFace tonemapping works without runtime warnings.
+- Swapped the flat ground plane for a trigonometric heightfield when populating chunks.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
 
