@@ -72,11 +72,28 @@ fn setup(
         .insert(FlyCamera);
 
     let ground_texture = asset_server.load("textures/ground.png");
+    let dirt_texture = asset_server.load("textures/dirt.png");
+    let stone_texture = asset_server.load("textures/stone.png");
+
     let ground_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.55, 0.75, 0.45),
         base_color_texture: Some(ground_texture.clone()),
         perceptual_roughness: 0.85,
         reflectance: 0.02,
+        ..default()
+    });
+    let dirt_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.45, 0.32, 0.22),
+        base_color_texture: Some(dirt_texture.clone()),
+        perceptual_roughness: 0.95,
+        reflectance: 0.01,
+        ..default()
+    });
+    let stone_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.5, 0.5, 0.52),
+        base_color_texture: Some(stone_texture.clone()),
+        perceptual_roughness: 0.7,
+        reflectance: 0.05,
         ..default()
     });
 
@@ -100,9 +117,20 @@ fn setup(
                     (cz * CHUNK_SIZE as u32) as f32,
                 );
 
+                let sample_x = tx.x + CHUNK_SIZE as f32 * 0.5;
+                let sample_z = tx.z + CHUNK_SIZE as f32 * 0.5;
+                let sample_height = height_at(sample_x, sample_z);
+                let material_handle = if sample_height > 28.0 {
+                    stone_material.clone()
+                } else if sample_height > 18.0 {
+                    dirt_material.clone()
+                } else {
+                    ground_material.clone()
+                };
+
                 commands.spawn(PbrBundle {
                     mesh: mesh_handle,
-                    material: ground_material.clone(),
+                    material: material_handle,
                     transform: Transform::from_translation(tx),
                     ..default()
                 });
