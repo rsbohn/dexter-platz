@@ -19,6 +19,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Hooked up K/J keys to drive the ground vehicle forward/back independent of the active camera.
 - Renamed the README heading to match the `dexter-platz` repo and refreshed the next-steps list.
 - Added screenshot capture on `P` using Bevy's `ScreenshotPlugin`, dumping files into `screenshots/` and ignoring them in git.
+- Removed the redundant `ScreenshotPlugin` registration after runtime panic; rely on the default Bevy stack instead.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
 

@@ -6,7 +6,7 @@ use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
-use bevy::render::view::screenshot::{ScreenshotManager, ScreenshotPlugin};
+use bevy::render::view::screenshot::ScreenshotManager;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -44,7 +44,6 @@ struct GroundVehicle;
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.build())
-        .add_plugins(ScreenshotPlugin)
         .init_resource::<CameraRegistry>()
         .add_systems(Startup, setup)
         .add_systems(
