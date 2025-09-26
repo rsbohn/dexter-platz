@@ -22,8 +22,9 @@ The default build targets X11 and will fall back to XWayland when run in a Wayla
 ## Controls
 
 - `Backspace`: quit
-- `A`/`D`: rotate left/right
+- `Q`/`E`: rotate left/right
 - `W`/`S`: move forward/back based on facing
+- `A`/`D`: strafe left/right
 - `Z`: move down
 - `X`: move up
 - `Tab`: toggle between available cameras

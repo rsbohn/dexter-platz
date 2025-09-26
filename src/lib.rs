@@ -353,10 +353,10 @@ fn camera_controls(
     let delta = time.delta_seconds();
     let rotation_speed = std::f32::consts::PI; // half turn per second
     let mut yaw_input: f32 = 0.0;
-    if keys.pressed(KeyCode::KeyA) {
+    if keys.pressed(KeyCode::KeyQ) {
         yaw_input += 1.0;
     }
-    if keys.pressed(KeyCode::KeyD) {
+    if keys.pressed(KeyCode::KeyE) {
         yaw_input -= 1.0;
     }
     if yaw_input.abs() > f32::EPSILON {
@@ -369,11 +369,26 @@ fn camera_controls(
     if forward.length_squared() > f32::EPSILON {
         forward = forward.normalize();
     }
+    let mut right = transform.right().as_vec3();
+    right.y = 0.0;
+    if right.length_squared() > f32::EPSILON {
+        right = right.normalize();
+    }
+    
+    // Forward/back movement with W/S
     if keys.pressed(KeyCode::KeyW) {
         movement += forward;
     }
     if keys.pressed(KeyCode::KeyS) {
         movement -= forward;
+    }
+    
+    // Lateral movement with A/D (strafe left/right)
+    if keys.pressed(KeyCode::KeyA) {
+        movement -= right;
+    }
+    if keys.pressed(KeyCode::KeyD) {
+        movement += right;
     }
     if keys.pressed(KeyCode::KeyX) {
         movement.y += 1.0;
