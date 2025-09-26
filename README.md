@@ -26,6 +26,7 @@ The default build targets X11 and will fall back to XWayland when run in a Wayla
 - `W`/`S`: move forward/back based on facing
 - `Z`: move down
 - `X`: move up
+- `Tab`: toggle between available cameras
 
 The directional light gradually shifts its color between blue, white, and red to give the scene some motion.
 

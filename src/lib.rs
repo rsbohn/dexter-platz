@@ -13,6 +13,12 @@ use crate::world::{Chunk, CHUNK_SIZE};
 
 const WORLD_DIM: u32 = 9; // 9x9x9 chunks
 
+#[derive(Default, Resource)]
+struct CameraRegistry {
+    cameras: Vec<Entity>,
+    active: usize,
+}
+
 fn height_at(world_x: f32, world_z: f32) -> f32 {
     let coarse = (world_x * 0.05).sin() + (world_z * 0.05).cos();
     let medium = ((world_x + world_z) * 0.02).sin();
@@ -29,11 +35,15 @@ struct AnimatedLight {
     speed: f32,
 }
 
+#[derive(Component)]
+struct GroundVehicle;
+
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.build())
+        .init_resource::<CameraRegistry>()
         .add_systems(Startup, setup)
-        .add_systems(Update, (camera_controls, animate_light))
+        .add_systems(Update, (camera_controls, animate_light, cycle_cameras))
         .run();
 }
 
@@ -42,6 +52,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
+    mut camera_registry: ResMut<CameraRegistry>,
 ) {
     // Lighting
     commands
@@ -79,6 +90,7 @@ fn setup(
         },
         FlyCamera,
     ));
+    let mut fly_camera_entity = None;
     camera_rig.with_children(|parent| {
         parent.spawn(PbrBundle {
             mesh: camera_mesh.clone(),
@@ -87,11 +99,18 @@ fn setup(
                 .with_scale(Vec3::new(0.8, 0.6, 0.8)),
             ..default()
         });
-        parent.spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.4, 0.0)),
-            ..default()
-        });
+        let camera = parent
+            .spawn(Camera3dBundle {
+                transform: Transform::from_translation(Vec3::new(0.0, 0.4, 0.0)),
+                ..default()
+            })
+            .id();
+        fly_camera_entity = Some(camera);
     });
+    if let Some(entity) = fly_camera_entity {
+        camera_registry.active = camera_registry.cameras.len();
+        camera_registry.cameras.push(entity);
+    }
 
     let ground_texture = asset_server.load("textures/ground.png");
     let dirt_texture = asset_server.load("textures/dirt.png");
@@ -158,6 +177,49 @@ fn setup(
                 });
             }
         }
+    }
+
+    // Ground vehicle rig
+    let vehicle_mesh = meshes.add(Mesh::from(Cuboid::new(2.4, 1.2, 4.0)));
+    let vehicle_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.35, 0.36, 0.4),
+        perceptual_roughness: 0.6,
+        metallic: 0.1,
+        reflectance: 0.05,
+        ..default()
+    });
+    let vehicle_pos = Vec3::new(center.x + 40.0, 0.0, center.z + 20.0);
+    let vehicle_height = height_at(vehicle_pos.x, vehicle_pos.z);
+    let vehicle_translation = Vec3::new(vehicle_pos.x, vehicle_height + 1.2, vehicle_pos.z);
+    let mut vehicle_rig = commands.spawn((
+        SpatialBundle {
+            transform: Transform::from_translation(vehicle_translation).looking_at(center, Vec3::Y),
+            ..default()
+        },
+        GroundVehicle,
+    ));
+    let mut vehicle_camera_entity = None;
+    vehicle_rig.with_children(|parent| {
+        parent.spawn(PbrBundle {
+            mesh: vehicle_mesh.clone(),
+            material: vehicle_material.clone(),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            ..default()
+        });
+        let camera = parent
+            .spawn(Camera3dBundle {
+                camera: Camera {
+                    is_active: false,
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(0.0, 1.2, 0.0)),
+                ..default()
+            })
+            .id();
+        vehicle_camera_entity = Some(camera);
+    });
+    if let Some(entity) = vehicle_camera_entity {
+        camera_registry.cameras.push(entity);
     }
 
     // Highlight the world center with a white voxel-sized cube.
@@ -286,5 +348,30 @@ fn animate_light(time: Res<Time>, mut lights: Query<(&AnimatedLight, &mut Direct
 
         let rgb = from.lerp(to, t);
         light.color = Color::srgb(rgb.x, rgb.y, rgb.z);
+    }
+}
+
+fn cycle_cameras(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut registry: ResMut<CameraRegistry>,
+    mut cameras: Query<&mut Camera>,
+) {
+    if !keys.just_pressed(KeyCode::Tab) {
+        return;
+    }
+    let count = registry.cameras.len();
+    if count < 2 {
+        return;
+    }
+
+    let current = registry.active.min(count - 1);
+    if let Ok(mut camera) = cameras.get_mut(registry.cameras[current]) {
+        camera.is_active = false;
+    }
+
+    registry.active = (current + 1) % count;
+
+    if let Ok(mut camera) = cameras.get_mut(registry.cameras[registry.active]) {
+        camera.is_active = true;
     }
 }
