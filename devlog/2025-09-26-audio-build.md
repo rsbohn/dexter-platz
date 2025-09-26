@@ -16,6 +16,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Added dirt and stone texture variants and pick chunk materials based on sampled elevation.
 - Reworked the fly camera: A/D now yaw, W/S moves relative to facing, rig now has a visible mesh child plus the camera.
 - Spawned a ground vehicle rig with its own camera and wired Tab to cycle active viewpoints.
+- Hooked up K/J keys to drive the ground vehicle forward/back independent of the active camera.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
 

@@ -43,7 +43,15 @@ pub fn run() {
         .add_plugins(DefaultPlugins.build())
         .init_resource::<CameraRegistry>()
         .add_systems(Startup, setup)
-        .add_systems(Update, (camera_controls, animate_light, cycle_cameras))
+        .add_systems(
+            Update,
+            (
+                camera_controls,
+                vehicle_controls,
+                animate_light,
+                cycle_cameras,
+            ),
+        )
         .run();
 }
 
@@ -373,5 +381,40 @@ fn cycle_cameras(
 
     if let Ok(mut camera) = cameras.get_mut(registry.cameras[registry.active]) {
         camera.is_active = true;
+    }
+}
+
+fn vehicle_controls(
+    keys: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+    mut vehicles: Query<&mut Transform, With<GroundVehicle>>,
+) {
+    let mut movement_input = 0.0f32;
+    if keys.pressed(KeyCode::KeyK) {
+        movement_input += 1.0;
+    }
+    if keys.pressed(KeyCode::KeyJ) {
+        movement_input -= 1.0;
+    }
+    if movement_input.abs() < f32::EPSILON {
+        return;
+    }
+
+    let delta = time.delta_seconds();
+    let speed = 25.0;
+
+    for mut transform in &mut vehicles {
+        let mut forward = transform.forward().as_vec3();
+        forward.y = 0.0;
+        if forward.length_squared() > f32::EPSILON {
+            forward = forward.normalize();
+        } else {
+            forward = Vec3::Z;
+        }
+
+        transform.translation += forward * (movement_input * speed * delta);
+
+        let ground_height = height_at(transform.translation.x, transform.translation.z);
+        transform.translation.y = ground_height + 1.2;
     }
 }
