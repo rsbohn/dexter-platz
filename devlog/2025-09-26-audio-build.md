@@ -12,6 +12,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Enabled Bevy's `tonemapping_luts` feature so TonyMcMapFace tonemapping works without runtime warnings.
 - Swapped the flat ground plane for a trigonometric heightfield when populating chunks.
 - Raised the center cube so it floats 10 voxels above the sampled terrain height.
+- Generated a Perlin-based ground texture and applied it via a shared material.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
 

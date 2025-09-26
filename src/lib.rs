@@ -41,6 +41,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     // Lighting
     commands
@@ -70,7 +71,15 @@ fn setup(
         })
         .insert(FlyCamera);
 
-    // Simple worldgen: a single global ground layer at global Y = 0.
+    let ground_texture = asset_server.load("textures/ground.png");
+    let ground_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.55, 0.75, 0.45),
+        base_color_texture: Some(ground_texture.clone()),
+        perceptual_roughness: 0.85,
+        reflectance: 0.02,
+        ..default()
+    });
+
     for cz in 0..WORLD_DIM {
         for cy in 0..WORLD_DIM {
             for cx in 0..WORLD_DIM {
@@ -85,13 +94,6 @@ fn setup(
                 let bevy_mesh = surface_to_bevy_mesh(&smesh);
                 let mesh_handle = meshes.add(bevy_mesh);
 
-                // Simple material (tinted green)
-                let mat_handle = materials.add(StandardMaterial {
-                    base_color: Color::srgb(0.35, 0.8, 0.4),
-                    perceptual_roughness: 0.9,
-                    ..default()
-                });
-
                 let tx = Vec3::new(
                     (cx * CHUNK_SIZE as u32) as f32,
                     (cy * CHUNK_SIZE as u32) as f32,
@@ -100,7 +102,7 @@ fn setup(
 
                 commands.spawn(PbrBundle {
                     mesh: mesh_handle,
-                    material: mat_handle,
+                    material: ground_material.clone(),
                     transform: Transform::from_translation(tx),
                     ..default()
                 });
