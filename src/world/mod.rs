@@ -9,13 +9,15 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn new() -> Self { Self { data: vec![Voxel::AIR; CHUNK_VOLUME] } }
+    pub fn new() -> Self {
+        Self {
+            data: vec![Voxel::AIR; CHUNK_VOLUME],
+        }
+    }
 
     #[inline]
     pub fn index(x: u32, y: u32, z: u32) -> usize {
-        (x as usize)
-            + (y as usize) * CHUNK_SIZE
-            + (z as usize) * CHUNK_SIZE * CHUNK_SIZE
+        (x as usize) + (y as usize) * CHUNK_SIZE + (z as usize) * CHUNK_SIZE * CHUNK_SIZE
     }
 
     #[inline]
@@ -24,14 +26,17 @@ impl Chunk {
     }
 
     pub fn get(&self, x: u32, y: u32, z: u32) -> Voxel {
-        if !Self::in_bounds(x, y, z) { return Voxel::AIR; }
+        if !Self::in_bounds(x, y, z) {
+            return Voxel::AIR;
+        }
         self.data[Self::index(x, y, z)]
     }
 
     pub fn set(&mut self, x: u32, y: u32, z: u32, v: Voxel) {
-        if !Self::in_bounds(x, y, z) { return; }
+        if !Self::in_bounds(x, y, z) {
+            return;
+        }
         let idx = Self::index(x, y, z);
         self.data[idx] = v;
     }
 }
-

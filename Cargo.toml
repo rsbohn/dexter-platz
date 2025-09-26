@@ -3,5 +3,20 @@ name = "platz"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["x11"]
+audio = ["bevy/bevy_audio"]
+wayland = ["bevy/wayland"]
+x11 = ["bevy/x11"]
+
 [dependencies]
-bevy = "0.14"
+bevy = { version = "0.14", default-features = false, features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_winit",
+    "png",
+    "tonemapping_luts",
+] }

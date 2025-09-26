@@ -1,4 +1,3 @@
-use crate::voxel::Voxel;
 use crate::world::{Chunk, CHUNK_SIZE};
 
 #[derive(Default, Clone)]
@@ -17,7 +16,9 @@ pub fn mesh_chunk(chunk: &Chunk) -> SurfaceMesh {
         for y in 0..n {
             for x in 0..n {
                 let v = chunk.get(x, y, z);
-                if v.is_empty() { continue; }
+                if v.is_empty() {
+                    continue;
+                }
 
                 if x == 0 || chunk.get(x - 1, y, z).is_empty() {
                     push_face_neg_x(&mut mesh, x, y, z);
@@ -48,8 +49,10 @@ fn push_quad(mesh: &mut SurfaceMesh, verts: [[f32; 3]; 4], normal: [f32; 3]) {
     let base = mesh.positions.len() as u32;
     mesh.positions.extend_from_slice(&verts);
     mesh.normals.extend_from_slice(&[normal; 4]);
-    mesh.uvs.extend_from_slice(&[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]);
-    mesh.indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+    mesh.uvs
+        .extend_from_slice(&[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]);
+    mesh.indices
+        .extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
 }
 
 fn push_face_neg_x(mesh: &mut SurfaceMesh, x: u32, y: u32, z: u32) {
