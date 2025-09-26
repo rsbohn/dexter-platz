@@ -1,9 +1,10 @@
 # Build output
 target/
 
+screenshots/
+
 # By default, keep Cargo.lock for binaries. Remove if publishing a lib only.
 # Cargo.lock
 
 .DS_Store
 Thumbs.db
-

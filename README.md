@@ -28,6 +28,7 @@ The default build targets X11 and will fall back to XWayland when run in a Wayla
 - `X`: move up
 - `Tab`: toggle between available cameras
 - `K`/`J`: move the ground vehicle forward/back (works regardless of active camera)
+- `P`: capture a screenshot to `screenshots/`
 
 The directional light gradually shifts its color between blue, white, and red to give the scene some motion.
 

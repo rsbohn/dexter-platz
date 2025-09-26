@@ -6,6 +6,9 @@ use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::view::screenshot::{ScreenshotManager, ScreenshotPlugin};
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::meshing::{mesh_chunk, SurfaceMesh};
 use crate::voxel::Voxel;
@@ -41,6 +44,7 @@ struct GroundVehicle;
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.build())
+        .add_plugins(ScreenshotPlugin)
         .init_resource::<CameraRegistry>()
         .add_systems(Startup, setup)
         .add_systems(
@@ -48,6 +52,7 @@ pub fn run() {
             (
                 camera_controls,
                 vehicle_controls,
+                screenshot_capture,
                 animate_light,
                 cycle_cameras,
             ),
@@ -381,6 +386,43 @@ fn cycle_cameras(
 
     if let Ok(mut camera) = cameras.get_mut(registry.cameras[registry.active]) {
         camera.is_active = true;
+    }
+}
+
+fn screenshot_capture(
+    keys: Res<ButtonInput<KeyCode>>,
+    registry: Res<CameraRegistry>,
+    mut screenshot_manager: ResMut<ScreenshotManager>,
+) {
+    if !keys.just_pressed(KeyCode::KeyP) {
+        return;
+    }
+    if registry.cameras.is_empty() {
+        info!("No cameras registered; skipping screenshot");
+        return;
+    }
+    if let Err(err) = std::fs::create_dir_all("screenshots") {
+        warn!("Failed to create screenshots directory: {err}");
+        return;
+    }
+
+    let active_index = registry
+        .active
+        .min(registry.cameras.len().saturating_sub(1));
+    let camera_entity = registry.cameras[active_index];
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let filename = format!(
+        "screenshots/shot-{}-{:03}.png",
+        now.as_secs(),
+        now.subsec_millis()
+    );
+
+    match screenshot_manager.save_screenshot_to_disk(camera_entity, filename.clone()) {
+        Ok(()) => info!("Saved screenshot to {filename}"),
+        Err(err) => warn!("Failed to capture screenshot: {err}"),
     }
 }
 
