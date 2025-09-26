@@ -396,7 +396,8 @@ fn vehicle_controls(
     if keys.pressed(KeyCode::KeyJ) {
         movement_input -= 1.0;
     }
-    if movement_input.abs() < f32::EPSILON {
+    let level_request = keys.just_pressed(KeyCode::Period);
+    if movement_input.abs() < f32::EPSILON && !level_request {
         return;
     }
 
@@ -412,9 +413,16 @@ fn vehicle_controls(
             forward = Vec3::Z;
         }
 
-        transform.translation += forward * (movement_input * speed * delta);
+        if movement_input.abs() > f32::EPSILON {
+            transform.translation += forward * (movement_input * speed * delta);
+        }
 
         let ground_height = height_at(transform.translation.x, transform.translation.z);
         transform.translation.y = ground_height + 1.2;
+
+        if level_request {
+            let (yaw, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
+            transform.rotation = Quat::from_rotation_y(yaw);
+        }
     }
 }
