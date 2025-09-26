@@ -15,6 +15,14 @@ use crate::voxel::Voxel;
 use crate::world::{Chunk, CHUNK_SIZE};
 
 const WORLD_DIM: u32 = 9; // 9x9x9 chunks
+const PROJECT_NAME: &str = "dexter-platz";
+
+#[derive(Default, Resource)]
+struct HudState {
+    entity: Option<Entity>,
+    message: String,
+    dirty: bool,
+}
 
 #[derive(Default, Resource)]
 struct CameraRegistry {
@@ -41,10 +49,14 @@ struct AnimatedLight {
 #[derive(Component)]
 struct GroundVehicle;
 
+#[derive(Component)]
+struct HudText;
+
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.build())
         .init_resource::<CameraRegistry>()
+        .init_resource::<HudState>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -54,6 +66,7 @@ pub fn run() {
                 screenshot_capture,
                 animate_light,
                 cycle_cameras,
+                update_hud,
             ),
         )
         .run();
@@ -65,6 +78,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     mut camera_registry: ResMut<CameraRegistry>,
+    mut hud_state: ResMut<HudState>,
 ) {
     // Lighting
     commands
@@ -234,6 +248,43 @@ fn setup(
         camera_registry.cameras.push(entity);
     }
 
+    // HUD overlay
+    let hud_entity = commands
+        .spawn((
+            TextBundle {
+                text: Text::from_sections([
+                    TextSection::new(
+                        format!("{PROJECT_NAME}\n"),
+                        TextStyle {
+                            font: default(),
+                            font_size: 26.0,
+                            color: Color::WHITE,
+                        },
+                    ),
+                    TextSection::new(
+                        "Press P to capture screenshot",
+                        TextStyle {
+                            font: default(),
+                            font_size: 18.0,
+                            color: Color::WHITE,
+                        },
+                    ),
+                ]),
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(12.0),
+                    left: Val::Px(12.0),
+                    ..default()
+                },
+                ..default()
+            },
+            HudText,
+        ))
+        .id();
+    hud_state.entity = Some(hud_entity);
+    hud_state.message = "Press P to capture screenshot".into();
+    hud_state.dirty = true;
+
     // Highlight the world center with a white voxel-sized cube.
     let cube_mesh = meshes.add(Mesh::from(Cuboid::default()));
     let cube_material = materials.add(StandardMaterial {
@@ -392,16 +443,19 @@ fn screenshot_capture(
     keys: Res<ButtonInput<KeyCode>>,
     registry: Res<CameraRegistry>,
     mut screenshot_manager: ResMut<ScreenshotManager>,
+    mut hud_state: ResMut<HudState>,
 ) {
     if !keys.just_pressed(KeyCode::KeyP) {
         return;
     }
     if registry.cameras.is_empty() {
-        info!("No cameras registered; skipping screenshot");
+        hud_state.message = "Screenshot failed: no registered cameras".into();
+        hud_state.dirty = true;
         return;
     }
     if let Err(err) = std::fs::create_dir_all("screenshots") {
-        warn!("Failed to create screenshots directory: {err}");
+        hud_state.message = format!("Screenshot failed: {err}");
+        hud_state.dirty = true;
         return;
     }
 
@@ -420,8 +474,14 @@ fn screenshot_capture(
     );
 
     match screenshot_manager.save_screenshot_to_disk(camera_entity, filename.clone()) {
-        Ok(()) => info!("Saved screenshot to {filename}"),
-        Err(err) => warn!("Failed to capture screenshot: {err}"),
+        Ok(()) => {
+            hud_state.message = format!("Saved screenshot: {filename}");
+            hud_state.dirty = true;
+        }
+        Err(err) => {
+            hud_state.message = format!("Screenshot failed: {err}");
+            hud_state.dirty = true;
+        }
     }
 }
 
@@ -466,4 +526,20 @@ fn vehicle_controls(
             transform.rotation = Quat::from_rotation_y(yaw);
         }
     }
+}
+
+fn update_hud(mut hud_state: ResMut<HudState>, mut texts: Query<&mut Text, With<HudText>>) {
+    if !hud_state.dirty {
+        return;
+    }
+    let Some(entity) = hud_state.entity else {
+        return;
+    };
+    if let Ok(mut text) = texts.get_mut(entity) {
+        if text.sections.len() >= 2 {
+            text.sections[0].value = format!("{PROJECT_NAME}\n");
+            text.sections[1].value = hud_state.message.clone();
+        }
+    }
+    hud_state.dirty = false;
 }
