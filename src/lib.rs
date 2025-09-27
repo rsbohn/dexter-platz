@@ -248,6 +248,17 @@ fn setup(
         camera_registry.cameras.push(entity);
     }
 
+    commands.spawn(Camera2dBundle {
+        camera: Camera {
+            order: 1,
+            clear_color: ClearColorConfig::None,
+            ..default()
+        },
+        ..default()
+    });
+
+    let font = asset_server.load("embedded://bevy_text/FiraMono-subset.ttf");
+
     // HUD overlay
     let hud_entity = commands
         .spawn((
@@ -256,7 +267,7 @@ fn setup(
                     TextSection::new(
                         format!("{PROJECT_NAME}\n"),
                         TextStyle {
-                            font: default(),
+                            font: font.clone(),
                             font_size: 26.0,
                             color: Color::WHITE,
                         },
@@ -264,7 +275,7 @@ fn setup(
                     TextSection::new(
                         "Press P to capture screenshot",
                         TextStyle {
-                            font: default(),
+                            font,
                             font_size: 18.0,
                             color: Color::WHITE,
                         },
@@ -374,7 +385,7 @@ fn camera_controls(
     if right.length_squared() > f32::EPSILON {
         right = right.normalize();
     }
-    
+
     // Forward/back movement with W/S
     if keys.pressed(KeyCode::KeyW) {
         movement += forward;
@@ -382,7 +393,7 @@ fn camera_controls(
     if keys.pressed(KeyCode::KeyS) {
         movement -= forward;
     }
-    
+
     // Lateral movement with A/D (strafe left/right)
     if keys.pressed(KeyCode::KeyA) {
         movement -= right;
@@ -492,10 +503,12 @@ fn screenshot_capture(
         Ok(()) => {
             hud_state.message = format!("Saved screenshot: {filename}");
             hud_state.dirty = true;
+            info!("Saved screenshot to {filename}");
         }
         Err(err) => {
             hud_state.message = format!("Screenshot failed: {err}");
             hud_state.dirty = true;
+            warn!("Failed to capture screenshot: {err}");
         }
     }
 }
