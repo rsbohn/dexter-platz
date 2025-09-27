@@ -257,7 +257,7 @@ fn setup(
         ..default()
     });
 
-    let font = asset_server.load("embedded://bevy_text/FiraMono-subset.ttf");
+    let font = asset_server.load("embedded://bevy_text/FiraMono-Regular.ttf");
 
     // HUD overlay
     let hud_entity = commands
