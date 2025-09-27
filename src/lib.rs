@@ -493,17 +493,19 @@ fn screenshot_capture(
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
-    let filename = format!(
-        "screenshots/shot-{}-{:03}.png",
-        now.as_secs(),
-        now.subsec_millis()
-    );
+    let filename = format!("shot-{}-{:03}.png", now.as_secs(), now.subsec_millis());
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let path = cwd.join("screenshots").join(&filename);
 
-    match screenshot_manager.save_screenshot_to_disk(camera_entity, filename.clone()) {
+    match screenshot_manager.save_screenshot_to_disk(camera_entity, path.clone()) {
         Ok(()) => {
-            hud_state.message = format!("Saved screenshot: {filename}");
+            let display_path = path
+                .strip_prefix(&cwd)
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|_| path.display().to_string());
+            hud_state.message = format!("Saved screenshot: {display_path}");
             hud_state.dirty = true;
-            info!("Saved screenshot to {filename}");
+            info!("Saved screenshot to {}", path.display());
         }
         Err(err) => {
             hud_state.message = format!("Screenshot failed: {err}");
