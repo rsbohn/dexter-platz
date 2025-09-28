@@ -57,6 +57,13 @@ struct RotatingSpotlight {
     speed: f32,
 }
 
+#[derive(Component)]
+struct FountainSplash {
+    base_height: f32,
+    amplitude: f32,
+    speed: f32,
+}
+
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.build())
@@ -71,6 +78,7 @@ pub fn run() {
                 screenshot_capture,
                 animate_light,
                 cycle_cameras,
+                animate_fountain,
                 rotate_spotlights,
                 update_hud,
             ),
@@ -279,7 +287,9 @@ fn setup(
         camera_registry.cameras.push(entity);
     }
 
-    build_ruin(&mut commands, &mut meshes, &mut materials, center);
+    let ruin_origin = build_ruin(&mut commands, &mut meshes, &mut materials, center);
+
+    build_fountain(&mut commands, &mut meshes, &mut materials, ruin_origin);
 
     commands.spawn(Camera2dBundle {
         camera: Camera {
@@ -553,7 +563,7 @@ fn build_ruin(
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
     world_center: Vec3,
-) {
+) -> Vec3 {
     let wall_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.45, 0.35, 0.28),
         perceptual_roughness: 0.7,
@@ -636,6 +646,98 @@ fn build_ruin(
         transform: Transform::from_translation(ruin_origin + Vec3::new(1.5, 0.6, 0.0)),
         ..default()
     });
+
+    ruin_origin
+}
+
+fn build_fountain(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    ruin_origin: Vec3,
+) {
+    let basin_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.32, 0.3, 0.28),
+        perceptual_roughness: 0.8,
+        reflectance: 0.04,
+        ..default()
+    });
+    let water_material = materials.add(StandardMaterial {
+        base_color: Color::srgba(0.35, 0.6, 0.65, 0.8),
+        emissive: Color::srgb(0.2, 0.4, 0.5).into(),
+        alpha_mode: AlphaMode::Add,
+        perceptual_roughness: 0.05,
+        reflectance: 0.08,
+        ..default()
+    });
+    let spray_material = materials.add(StandardMaterial {
+        base_color: Color::srgba(0.6, 0.8, 1.0, 0.6),
+        emissive: Color::srgb(0.8, 0.9, 1.3).into(),
+        alpha_mode: AlphaMode::Add,
+        perceptual_roughness: 0.02,
+        reflectance: 0.1,
+        ..default()
+    });
+
+    let basin_mesh = meshes.add(Mesh::from(Cylinder {
+        radius: 3.0,
+        half_height: 0.3,
+        ..default()
+    }));
+    let water_mesh = meshes.add(Mesh::from(Cylinder {
+        radius: 2.6,
+        half_height: 0.1,
+        ..default()
+    }));
+    let spray_mesh = meshes.add(Mesh::from(Cylinder {
+        radius: 0.6,
+        half_height: 1.1,
+        ..default()
+    }));
+
+    let fountain_origin = ruin_origin + Vec3::new(0.0, 0.0, -2.5);
+
+    commands.spawn(PbrBundle {
+        mesh: basin_mesh,
+        material: basin_material,
+        transform: Transform::from_translation(fountain_origin + Vec3::new(0.0, -0.1, 0.0)),
+        ..default()
+    });
+
+    commands.spawn(PbrBundle {
+        mesh: water_mesh.clone(),
+        material: water_material.clone(),
+        transform: Transform::from_translation(fountain_origin + Vec3::new(0.0, 0.2, 0.0)),
+        ..default()
+    });
+
+    commands
+        .spawn((
+            PbrBundle {
+                mesh: spray_mesh,
+                material: spray_material,
+                transform: Transform::from_translation(fountain_origin + Vec3::new(0.0, 1.2, 0.0)),
+                ..default()
+            },
+            FountainSplash {
+                base_height: fountain_origin.y + 1.2,
+                amplitude: 0.35,
+                speed: 2.5,
+            },
+        ))
+        .with_children(|parent| {
+            parent.spawn(PointLightBundle {
+                point_light: PointLight {
+                    intensity: 2_800.0,
+                    color: Color::srgb(0.45, 0.7, 1.0),
+                    shadows_enabled: false,
+                    range: 12.0,
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(0.0, 0.6, 0.0)),
+                ..default()
+            });
+        });
 }
 
 fn vehicle_controls(
@@ -701,5 +803,13 @@ fn rotate_spotlights(time: Res<Time>, mut query: Query<(&RotatingSpotlight, &mut
     for (rotator, mut transform) in &mut query {
         let delta = rotator.speed * time.delta_seconds();
         transform.rotate_y(delta);
+    }
+}
+
+fn animate_fountain(time: Res<Time>, mut query: Query<(&FountainSplash, &mut Transform)>) {
+    for (splash, mut transform) in &mut query {
+        let wave = (time.elapsed_seconds() * splash.speed).sin();
+        transform.translation.y = splash.base_height + wave * splash.amplitude;
+        transform.rotate_y(0.5 * splash.speed * time.delta_seconds());
     }
 }
