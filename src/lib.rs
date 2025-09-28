@@ -279,6 +279,8 @@ fn setup(
         camera_registry.cameras.push(entity);
     }
 
+    build_ruin(&mut commands, &mut meshes, &mut materials, center);
+
     commands.spawn(Camera2dBundle {
         camera: Camera {
             order: 1,
@@ -544,6 +546,89 @@ fn screenshot_capture(
             warn!("Failed to capture screenshot: {err}");
         }
     }
+}
+
+fn build_ruin(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    world_center: Vec3,
+) {
+    let wall_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.45, 0.35, 0.28),
+        perceptual_roughness: 0.7,
+        reflectance: 0.05,
+        ..default()
+    });
+    let floor_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.25, 0.22, 0.2),
+        perceptual_roughness: 0.9,
+        reflectance: 0.02,
+        ..default()
+    });
+
+    let wall_mesh = meshes.add(Mesh::from(Cuboid::new(12.0, 6.0, 1.0)));
+    let pillar_mesh = meshes.add(Mesh::from(Cuboid::new(1.2, 4.0, 1.2)));
+    let floor_mesh = meshes.add(Mesh::from(Cuboid::new(12.0, 0.4, 12.0)));
+
+    let ruin_origin = Vec3::new(
+        world_center.x,
+        height_at(world_center.x, world_center.z) + 0.2,
+        world_center.z + 18.0,
+    );
+
+    // floor slab
+    commands.spawn(PbrBundle {
+        mesh: floor_mesh.clone(),
+        material: floor_material.clone(),
+        transform: Transform::from_translation(ruin_origin + Vec3::new(0.0, -0.2, 0.0)),
+        ..default()
+    });
+
+    // walls (U-shape ruin)
+    let wall_positions = [
+        Vec3::new(-6.0, 3.0, -6.0),
+        Vec3::new(-6.0, 3.0, 6.0),
+        Vec3::new(6.0, 3.0, -6.0),
+    ];
+    let wall_rotations = [
+        Quat::IDENTITY,
+        Quat::IDENTITY,
+        Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+    ];
+
+    for (pos, rot) in wall_positions.into_iter().zip(wall_rotations) {
+        commands.spawn(PbrBundle {
+            mesh: wall_mesh.clone(),
+            material: wall_material.clone(),
+            transform: Transform::from_translation(ruin_origin + pos).with_rotation(rot),
+            ..default()
+        });
+    }
+
+    // corner pillars
+    let pillar_offsets = [
+        Vec3::new(-5.5, 2.0, -5.5),
+        Vec3::new(-5.5, 2.0, 5.5),
+        Vec3::new(5.5, 2.0, -5.5),
+    ];
+
+    for offset in pillar_offsets {
+        commands.spawn(PbrBundle {
+            mesh: pillar_mesh.clone(),
+            material: wall_material.clone(),
+            transform: Transform::from_translation(ruin_origin + offset),
+            ..default()
+        });
+    }
+
+    // debris block
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(Cuboid::new(2.0, 1.0, 1.5))),
+        material: wall_material,
+        transform: Transform::from_translation(ruin_origin + Vec3::new(1.5, 0.5, 0.0)),
+        ..default()
+    });
 }
 
 fn vehicle_controls(
