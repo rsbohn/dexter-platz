@@ -103,6 +103,7 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut camera_registry: ResMut<CameraRegistry>,
     mut hud_state: ResMut<HudState>,
+    mut auto_motion: ResMut<VehicleAutoMotion>,
 ) {
     // Lighting
     commands
@@ -125,6 +126,7 @@ fn setup(
     );
     let center = world_size / 2.0;
     commands.insert_resource(WorldCenter(center));
+    auto_motion.direction = 1.0;
     let camera_mesh = meshes.add(Mesh::from(Cuboid::new(1.0, 0.6, 1.6)));
     let camera_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.95, 0.8, 0.3),
