@@ -33,6 +33,11 @@ struct CameraRegistry {
 #[derive(Resource, Clone, Copy, Default)]
 struct WorldCenter(Vec3);
 
+#[derive(Resource, Default)]
+struct VehicleAutoMotion {
+    direction: f32,
+}
+
 fn height_at(world_x: f32, world_z: f32) -> f32 {
     let coarse = (world_x * 0.05).sin() + (world_z * 0.05).cos();
     let medium = ((world_x + world_z) * 0.02).sin();
@@ -73,6 +78,7 @@ pub fn run() {
         .init_resource::<CameraRegistry>()
         .init_resource::<HudState>()
         .init_resource::<WorldCenter>()
+        .init_resource::<VehicleAutoMotion>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -749,6 +755,7 @@ fn vehicle_controls(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     center: Res<WorldCenter>,
+    mut auto_motion: ResMut<VehicleAutoMotion>,
     mut vehicles: Query<&mut Transform, With<GroundVehicle>>,
 ) {
     let mut movement_input = 0.0f32;
@@ -763,7 +770,7 @@ fn vehicle_controls(
     let delta = time.delta_seconds();
     let manual_speed = 35.0;
     let auto_speed = 12.0;
-    let limit_chunks = 5.0;
+    let limit_chunks = 4.0;
 
     for mut transform in &mut vehicles {
         let mut forward = transform.forward().as_vec3();
@@ -782,7 +789,15 @@ fn vehicle_controls(
         }
 
         if forward.length_squared() > f32::EPSILON {
-            let displacement = forward * (auto_speed * delta);
+            if !within_chunk_limit(position, center.0, limit_chunks) {
+                auto_motion.direction *= -1.0;
+                position = move_inside_bounds(position, center.0, limit_chunks);
+                let yaw = transform.rotation.to_euler(EulerRot::YXZ).0 + std::f32::consts::PI;
+                transform.rotation = Quat::from_rotation_y(yaw);
+                forward = transform.forward().normalize();
+            }
+
+            let displacement = forward * (auto_motion.direction * auto_speed * delta);
             position = apply_limited_displacement(position, displacement, center.0, limit_chunks);
         }
 
@@ -849,4 +864,28 @@ fn within_chunk_limit(position: Vec3, center: Vec3, limit_chunks: f32) -> bool {
     let dx = ((position.x - center.x) / chunk_size).abs();
     let dz = ((position.z - center.z) / chunk_size).abs();
     dx + dz <= limit_chunks + f32::EPSILON
+}
+
+fn move_inside_bounds(position: Vec3, center: Vec3, limit_chunks: f32) -> Vec3 {
+    if within_chunk_limit(position, center, limit_chunks) {
+        return position;
+    }
+    let chunk_size = CHUNK_SIZE as f32;
+    let mut offset = Vec3::new(
+        (position.x - center.x) / chunk_size,
+        0.0,
+        (position.z - center.z) / chunk_size,
+    );
+    let manhattan = offset.x.abs() + offset.z.abs();
+    if manhattan <= f32::EPSILON {
+        return position;
+    }
+    let scale = (limit_chunks / manhattan).min(1.0);
+    offset.x *= scale;
+    offset.z *= scale;
+    Vec3::new(
+        center.x + offset.x * chunk_size,
+        position.y,
+        center.z + offset.z * chunk_size,
+    )
 }
