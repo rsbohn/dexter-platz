@@ -26,6 +26,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Added an emissive stone core inside the ruin so the new spotlight has something to highlight.
 - Built a glowing fountain near the ruin with animated spray and a cyan point light.
 - Added a rotating spotlight rig atop the ground vehicle to sweep the terrain while it moves.
+- Made the truck self-propelled but capped at five chunks from center (Manhattan distance) to keep it near the ruins.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
 

@@ -30,6 +30,9 @@ struct CameraRegistry {
     active: usize,
 }
 
+#[derive(Resource, Clone, Copy, Default)]
+struct WorldCenter(Vec3);
+
 fn height_at(world_x: f32, world_z: f32) -> f32 {
     let coarse = (world_x * 0.05).sin() + (world_z * 0.05).cos();
     let medium = ((world_x + world_z) * 0.02).sin();
@@ -69,6 +72,7 @@ pub fn run() {
         .add_plugins(DefaultPlugins.build())
         .init_resource::<CameraRegistry>()
         .init_resource::<HudState>()
+        .init_resource::<WorldCenter>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -114,6 +118,7 @@ fn setup(
         (WORLD_DIM * CHUNK_SIZE as u32) as f32,
     );
     let center = world_size / 2.0;
+    commands.insert_resource(WorldCenter(center));
     let camera_mesh = meshes.add(Mesh::from(Cuboid::new(1.0, 0.6, 1.6)));
     let camera_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.95, 0.8, 0.3),
@@ -743,6 +748,7 @@ fn build_fountain(
 fn vehicle_controls(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
+    center: Res<WorldCenter>,
     mut vehicles: Query<&mut Transform, With<GroundVehicle>>,
 ) {
     let mut movement_input = 0.0f32;
@@ -753,12 +759,11 @@ fn vehicle_controls(
         movement_input -= 1.0;
     }
     let level_request = keys.just_pressed(KeyCode::Period);
-    if movement_input.abs() < f32::EPSILON && !level_request {
-        return;
-    }
 
     let delta = time.delta_seconds();
-    let speed = 25.0;
+    let manual_speed = 35.0;
+    let auto_speed = 12.0;
+    let limit_chunks = 5.0;
 
     for mut transform in &mut vehicles {
         let mut forward = transform.forward().as_vec3();
@@ -769,17 +774,25 @@ fn vehicle_controls(
             forward = Vec3::Z;
         }
 
+        let mut position = transform.translation;
+
         if movement_input.abs() > f32::EPSILON {
-            transform.translation += forward * (movement_input * speed * delta);
+            let displacement = forward * (movement_input * manual_speed * delta);
+            position = apply_limited_displacement(position, displacement, center.0, limit_chunks);
         }
 
-        let ground_height = height_at(transform.translation.x, transform.translation.z);
-        transform.translation.y = ground_height + 1.2;
+        if forward.length_squared() > f32::EPSILON {
+            let displacement = forward * (auto_speed * delta);
+            position = apply_limited_displacement(position, displacement, center.0, limit_chunks);
+        }
 
         if level_request {
             let (yaw, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
             transform.rotation = Quat::from_rotation_y(yaw);
         }
+
+        let ground_height = height_at(position.x, position.z);
+        transform.translation = Vec3::new(position.x, ground_height + 1.2, position.z);
     }
 }
 
@@ -812,4 +825,28 @@ fn animate_fountain(time: Res<Time>, mut query: Query<(&FountainSplash, &mut Tra
         transform.translation.y = splash.base_height + wave * splash.amplitude;
         transform.rotate_y(0.5 * splash.speed * time.delta_seconds());
     }
+}
+
+fn apply_limited_displacement(
+    current: Vec3,
+    displacement: Vec3,
+    center: Vec3,
+    limit_chunks: f32,
+) -> Vec3 {
+    if displacement == Vec3::ZERO {
+        return current;
+    }
+    let candidate = current + displacement;
+    if within_chunk_limit(candidate, center, limit_chunks) {
+        candidate
+    } else {
+        current
+    }
+}
+
+fn within_chunk_limit(position: Vec3, center: Vec3, limit_chunks: f32) -> bool {
+    let chunk_size = CHUNK_SIZE as f32;
+    let dx = ((position.x - center.x) / chunk_size).abs();
+    let dz = ((position.z - center.z) / chunk_size).abs();
+    dx + dz <= limit_chunks + f32::EPSILON
 }
