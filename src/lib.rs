@@ -566,6 +566,13 @@ fn build_ruin(
         reflectance: 0.02,
         ..default()
     });
+    let core_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.6, 0.5, 0.55),
+        emissive: Color::srgb(1.8, 1.6, 2.6).into(),
+        perceptual_roughness: 0.15,
+        reflectance: 0.1,
+        ..default()
+    });
 
     let wall_mesh = meshes.add(Mesh::from(Cuboid::new(12.0, 6.0, 1.0)));
     let pillar_mesh = meshes.add(Mesh::from(Cuboid::new(1.2, 4.0, 1.2)));
@@ -624,9 +631,9 @@ fn build_ruin(
 
     // debris block
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(Cuboid::new(2.0, 1.0, 1.5))),
-        material: wall_material,
-        transform: Transform::from_translation(ruin_origin + Vec3::new(1.5, 0.5, 0.0)),
+        mesh: meshes.add(Mesh::from(Cuboid::new(2.0, 1.2, 1.5))),
+        material: core_material,
+        transform: Transform::from_translation(ruin_origin + Vec3::new(1.5, 0.6, 0.0)),
         ..default()
     });
 }

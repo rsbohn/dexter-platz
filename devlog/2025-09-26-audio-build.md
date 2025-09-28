@@ -23,6 +23,7 @@ Investigated why `cargo run` kept rebuilding `alsa-sys` and failing on missing s
 - Enabled Bevy UI/text features and added a HUD that shows the project name plus the most recent screenshot message.
 - Loaded Bevy's embedded font explicitly, spawned a dedicated UI camera, and log HUD updates so the overlay renders reliably and screenshots confirm success.
 - Built a simple U-shaped ruin with pillars and debris near the world center to give the scene some points of interest.
+- Added an emissive stone core inside the ruin so the new spotlight has something to highlight.
 - Added a rotating spotlight rig atop the ground vehicle to sweep the terrain while it moves.
 - Verified the scene visually: base renders as dark green, the center cube responds to the animated lighting sweep.
 - Verified the project builds with `cargo check` (runtime still needs X11 cursor libs).
