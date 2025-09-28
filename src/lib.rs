@@ -695,7 +695,7 @@ fn build_fountain(
         ..default()
     }));
 
-    let fountain_origin = ruin_origin + Vec3::new(0.0, 0.0, -2.5);
+    let fountain_origin = ruin_origin + Vec3::new(-14.0, 0.0, 3.5);
 
     commands.spawn(PbrBundle {
         mesh: basin_mesh,
