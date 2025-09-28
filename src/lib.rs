@@ -52,6 +52,11 @@ struct GroundVehicle;
 #[derive(Component)]
 struct HudText;
 
+#[derive(Component)]
+struct RotatingSpotlight {
+    speed: f32,
+}
+
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.build())
@@ -66,6 +71,7 @@ pub fn run() {
                 screenshot_capture,
                 animate_light,
                 cycle_cameras,
+                rotate_spotlights,
                 update_hud,
             ),
         )
@@ -232,6 +238,31 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..default()
         });
+        parent
+            .spawn((
+                SpatialBundle {
+                    transform: Transform::from_translation(Vec3::new(0.0, 2.5, 0.0)),
+                    ..default()
+                },
+                RotatingSpotlight {
+                    speed: std::f32::consts::TAU / 6.0,
+                },
+            ))
+            .with_children(|pivot| {
+                pivot.spawn(SpotLightBundle {
+                    spot_light: SpotLight {
+                        color: Color::srgb(1.0, 0.95, 0.8),
+                        intensity: 6_000.0,
+                        outer_angle: 0.7,
+                        inner_angle: 0.4,
+                        shadows_enabled: true,
+                        ..default()
+                    },
+                    transform: Transform::from_translation(Vec3::new(0.0, 0.3, 1.8))
+                        .looking_at(Vec3::new(0.0, -0.2, 0.0), Vec3::Y),
+                    ..default()
+                });
+            });
         let camera = parent
             .spawn(Camera3dBundle {
                 camera: Camera {
@@ -572,4 +603,11 @@ fn update_hud(mut hud_state: ResMut<HudState>, mut texts: Query<&mut Text, With<
         }
     }
     hud_state.dirty = false;
+}
+
+fn rotate_spotlights(time: Res<Time>, mut query: Query<(&RotatingSpotlight, &mut Transform)>) {
+    for (rotator, mut transform) in &mut query {
+        let delta = rotator.speed * time.delta_seconds();
+        transform.rotate_y(delta);
+    }
 }
